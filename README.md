@@ -15,6 +15,7 @@ Shortcut for removing and ignoring a tracked file from a Git repository.
 | Flag                | Description                                         |
 | ------------------- | --------------------------------------------------- |
 | `-g`, `--gitignore` | Update `.gitignore` instead of `.git/info/exclude`. |
+| `-m`, `--message`   | Use a custom commit message.                        |
 
 #### Examples
 
