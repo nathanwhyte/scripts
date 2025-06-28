@@ -1,54 +1,57 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+PRINT_PADDING="  "
+
+COLOR_GREEN=$(tput setaf 2)
+COLOR_YELLOW=$(tput setaf 3)
+STYLE_RESET=$(tput sgr0)
+
+turn_green() {
+  printf "%s%s%s" "${COLOR_GREEN}" "$1" "${STYLE_RESET}"
+}
+
+turn_yellow() {
+  printf "%s%s%s" "${COLOR_YELLOW}" "$1" "${STYLE_RESET}"
+}
+
+CHECKMARK="$(turn_green "")"
+QUESTION_MARK="$(turn_yellow "?")"
 
 GIT_DIR="$(git rev-parse --show-toplevel)"
+
+REPO_IGNORE_FILE="$GIT_DIR/.gitignore"
+PRIVATE_IGNORE_FILE="$GIT_DIR/.git/info/exclude"
+
+printf "\n"
+
+if [ -f "$PRIVATE_IGNORE_FILE" ]; then
+  printf "%s%s Found \`.git/info/exclude\`\n" "$PRINT_PADDING" "$CHECKMARK"
+else
+  printf "%s%s Didn't find \`.git/info/exclude\`\n" "$PRINT_PADDING" "$QUESTION_MARK"
+fi
+
+if [ -f "$REPO_IGNORE_FILE" ]; then
+  printf "%s%s Found \`.gitignore\`\n" "$PRINT_PADDING" "$CHECKMARK"
+else
+  printf "%s%s Didn't find \`.gitignore\`\n" "$PRINT_PADDING" "$QUESTION_MARK"
+fi
+
+printf "\n"
 
 if [[ -z "$GIT_DIR" ]]; then
   echo "Not in a git repository, exiting..."
   exit 1
 fi
 
-# TODO: check for .gitingore and .git/info/exclude
-
-# TODO: check if file is already tracked
-
-# TODO: handle directories
-
-# FEAT: interactive mode
-
 declare -a FILES
 
-FILES_IDX=0
 for arg in "$@"; do
-  if [ ! -f "$arg" ]; then
-    echo "$arg not a file, skipping..."
+  if [ -f "$arg" ] || [ -d "$arg" ]; then
+    FILES+=("$arg")
+  else
+    printf "%s%s is not a file or directory, skipping...\n" "$PRINT_PADDING" "$(turn_green "\`$arg\`")"
     continue
-  elif [ -d "$arg" ]; then
-    echo "$arg is a directory, skipping..."
-    continue
   fi
-
-  FILES[FILES_IDX]="$arg"
-  FILES_IDX=$((FILES_IDX + 1))
 done
 
-for arg in "${FILES[@]}"; do
-  if grep -q "$arg" "$(pwd)"/.gitignore; then
-    echo "$arg is already ignored, skipping..."
-  fi
-
-  if grep -q "$arg" "$(pwd)"/.git/info/exclude; then
-    echo "$arg is already ignored, skipping..."
-  fi
-
-  mv "$arg" "$arg.ignore"
-
-  echo "$arg" >>"$(pwd)"/.git/info/exclude
-
-  git add "$arg"
-done
-
-git commit -m "ingore-existing-file.sh: ignore specific files"
-
-for arg in "${FILES[@]}"; do
-  mv "$arg.ignore" "$arg"
-done
+printf "\n"
