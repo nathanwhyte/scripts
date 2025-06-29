@@ -49,26 +49,43 @@ fi
 
 printf "\n"
 
-declare -a FILES
+# accounts for different versions of mktemp between MacOS and Linux
+make_temp_dir() {
+  mktemp -d 2>/dev/null || mktemp -d -t "$1"
+}
+
+TEMP_DIR="$(make_temp_dir "ignore-existing-file")"
 
 for arg in "$@"; do
+  # IDEA: use `git check-ignore` here instead
   if [ -f "$arg" ] || [ -d "$arg" ]; then
-    # FILES+=("$arg")
-
-    # TODO: check .gitignore and .git/info/exclude content
     if grep -q -s "$arg" "$(pwd)"/.gitignore "$(pwd)"/.git/info/exclude; then
-      echo "$arg is already ignored, skipping..."
+      printf "%32s is already ignored, skipping ...\n" "$(turn_green "\`$arg\`")"
       continue
     fi
 
-    # if grep -q "$arg" "$(pwd)"/.git/info/exclude; then
-    #   echo "$arg is already ignored, skipping..."
-    #   continue
-    # fi
+    if [ -d "$arg" ]; then
+      mv "$arg" "$TEMP_DIR"
+      find . -type f -path "*$arg*/*" -exec git add {} \;
+      echo "$arg/" >>"$PRIVATE_IGNORE_FILE"
+    else
+      mv "$arg" "$TEMP_DIR"
+      git add "$arg"
+      echo "$arg" >>"$PRIVATE_IGNORE_FILE"
+    fi
+
   else
-    printf "%s%s is not a file or directory, skipping...\n" "$PRINT_PADDING" "$(turn_green "\`$arg\`")"
+    printf "%42s is not a file or directory, skipping ...\n" "$(turn_green "\`$arg\`")"
     continue
   fi
 done
+
+printf "\nCreating a new commit ...\n"
+
+git commit
+
+find "$TEMP_DIR" -maxdepth 1 | tail -n +2 | xargs -I {} mv {} "$GIT_DIR"
+
+rm -rf "$TEMP_DIR"
 
 printf "\n"
