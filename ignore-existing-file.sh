@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# TODO: flags and options
+
+# TODO: print usage
+
 PRINT_PADDING="  "
 
 COLOR_RED=$(tput setaf 1)
@@ -57,9 +61,8 @@ make_temp_dir() {
 TEMP_DIR="$(make_temp_dir "ignore-existing-file")"
 
 for arg in "$@"; do
-  # IDEA: use `git check-ignore` here instead
   if [ -f "$arg" ] || [ -d "$arg" ]; then
-    if grep -q -s "$arg" "$(pwd)"/.gitignore "$(pwd)"/.git/info/exclude; then
+    if git check-ignore -q "$arg"; then
       printf "%32s is already ignored, skipping ...\n" "$(turn_green "\`$arg\`")"
       continue
     fi
@@ -80,12 +83,10 @@ for arg in "$@"; do
   fi
 done
 
-printf "\nCreating a new commit ...\n"
+printf "\nCreating new commit ...\n\n"
 
 git commit
 
 find "$TEMP_DIR" -maxdepth 1 | tail -n +2 | xargs -I {} mv {} "$GIT_DIR"
 
 rm -rf "$TEMP_DIR"
-
-printf "\n"
