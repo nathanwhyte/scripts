@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-printf "\n   🧠 Thinking...\n\n"
+printf "\n 🧠 Thinking...\n\n"
 
 SYSTEM_INSTRUCTIONS=$(
   cat <<'EOF'
@@ -45,9 +45,21 @@ EOF
 )
 
 MODEL="gpt-5.2"
+EFFORT="low"
 
-CODEX_RESPONSE=$(codex exec --skip-git-repo-check --json --model "$MODEL" "$FULL_PROMPT")
+CODEX_RESPONSE=$(codex exec --skip-git-repo-check --config model_reasoning_effort="$EFFORT" --json --model "$MODEL" "$FULL_PROMPT")
 
-CODEX_ANSWER=$(echo "$CODEX_RESPONSE" | jq -r '.item.text? // empty')
+OUTPUT_BIN="$(which cat)"
+if [ "$(whereis rich | wc -w)" -eq 1 ]; then
+  printf "This script uses 'rich' for nicer-looking output, but it wasn't found on your machine.\n"
+  printf "Check it out at %s\n" "https://github.com/textualize/rich-cli"
+  OUTPUT_FLAGS=""
+else
+  OUTPUT_BIN="$(whereis rich | awk '{print $2}')"
+  OUTPUT_FLAGS="--panel=rounded"
+fi
 
-printf "   %s\n" "$CODEX_ANSWER"
+printf "\n 🤖 ChatGPT says:\n"
+
+# use printf/echo twice to automatically handle trailing/leading newlines
+"$OUTPUT_BIN" <(printf "%s" "$(echo "$CODEX_RESPONSE" | jq -r '.item.text? // empty')") "$OUTPUT_FLAGS"
